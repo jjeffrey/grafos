@@ -41,31 +41,27 @@ grafoDe (GrafoND g) = g
 grafoDe (GrafoTND g) = g
 
 aristaEntre :: Eq a => Vertice a -> Vertice a -> GrafoTipo (Grafo a) -> Maybe Int --quizás hay un nombre mejor para grafos dirigidos, y quizás hay abstracciones posibles
-aristaEntre v1 v2 (GrafoD g) =
+aristaEntre v1 v2 (GrafoD g@(_, as)) =
     let v1Indice = fromMaybe (-1) $ indiceDe v1 g
         v2Indice = fromMaybe (-1) $ indiceDe v2 g
-        as = snd g
         in if v1Indice > (-1) && v2Indice > (-1)
            then Just ((as !! v1Indice) !! v2Indice)
            else Nothing
-aristaEntre v1 v2 (GrafoDSN g) =
+aristaEntre v1 v2 (GrafoDSN g@(_, as)) =
     let v1Indice = fromMaybe (-1) $ indiceDe v1 g
         v2Indice = fromMaybe (-1) $ indiceDe v2 g
-        as = snd g
         in if v1Indice > (-1) && v2Indice > (-1)
            then Just ((as !! v1Indice) !! v2Indice)
            else Nothing
-aristaEntre v1 v2 (GrafoND g) =
+aristaEntre v1 v2 (GrafoND g@(_, as)) =
     let v1Indice = fromMaybe (-1) $ indiceDe v1 g
         v2Indice = fromMaybe (-1) $ indiceDe v2 g
-        as = snd g
         in if v1Indice > (-1) && v2Indice > (-1)
            then Just ((as !! (min v1Indice v2Indice)) !! (max v1Indice v2Indice))
            else Nothing
-aristaEntre v1 v2 (GrafoTND g) =
+aristaEntre v1 v2 (GrafoTND g@(_, as)) =
     let v1Indice = fromMaybe (-1) $ indiceDe v1 g
         v2Indice = fromMaybe (-1) $ indiceDe v2 g
-        as = snd g
         in if v1Indice > (-1) && v2Indice > (-1)
            then Just ((as !! (min v1Indice v2Indice)) !! ((max v1Indice v2Indice) - (min v1Indice v2Indice)))
            else Nothing
