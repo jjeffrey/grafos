@@ -1,15 +1,15 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Grafos (
     Vertice,
     Vertices,
     Aristas,
     Grafo,
-    GrafoTipo,
+    ValGrafo,
+    GrafoTipo (GrafoD, GrafoDSN, GrafoND, GrafoTND),
     indiceDe,
     grafoDe,
-    grafoDdeLista,
+    valGrafodeLista,
     grafoDSNdeLista,
-    grafoNDdeLista,
-    grafoTNDdeLista,
     aristaEntre
 ) where
 
@@ -24,61 +24,44 @@ type Grafo a = (Vertices a, Aristas)
 indiceDe :: Eq a => Vertice a -> Grafo a -> Maybe Int
 indiceDe v (vs, as) = elemIndex v vs
 
-{-TIPOS DE GRAFOS-}
+showGrafo :: Show a => Grafo a -> String
+showGrafo g = "Not yet implemented/Normal show: " ++ (show g)
 
-data GrafoTipo a = GrafoD a | GrafoDSN a | GrafoND a | GrafoTND a --GrafoDSN es una excepción de la regla
 
-instance Functor GrafoTipo where
-  fmap f (GrafoD g) = GrafoD (f g)
-  fmap f (GrafoDSN g) = GrafoDSN (f g)
-  fmap f (GrafoND g) = GrafoND (f g)
-  fmap f (GrafoTND g) = GrafoTND (f g)
+{-VALGRAFOS-}
 
-grafoDe :: GrafoTipo (Grafo a) -> Grafo a
-grafoDe (GrafoD g) = g
-grafoDe (GrafoDSN g) = g
-grafoDe (GrafoND g) = g
-grafoDe (GrafoTND g) = g
+data ValGrafo a = ValGrafo GrafoTipo a
+data GrafoTipo = GrafoD | GrafoDSN | GrafoND | GrafoTND --GrafoDSN es una excepción de la regla
 
-aristaEntre :: Eq a => Vertice a -> Vertice a -> GrafoTipo (Grafo a) -> Maybe Int --quizás hay un nombre mejor para grafos dirigidos, y quizás hay abstracciones posibles
-aristaEntre v1 v2 (GrafoD g@(_, as)) =
+instance Functor ValGrafo where
+  fmap f (ValGrafo gt g) = ValGrafo gt (f g)
+
+instance Show a => Show (ValGrafo (Grafo a)) where
+  show (ValGrafo _ grafo) = showGrafo grafo
+
+grafoDe :: ValGrafo (Grafo a) -> Grafo a
+grafoDe (ValGrafo _ g) = g
+
+{-Constructores de ValGrafos-}
+valGrafodeLista :: GrafoTipo -> Vertices a -> Aristas -> ValGrafo (Grafo a)
+valGrafodeLista gt vs as = ValGrafo gt $ case gt of GrafoD   -> grafoTipoPorPruebas [numeroPrueba, cuadradoPrueba] vs as
+                                                    GrafoND  -> grafoTipoPorPruebas [numeroPrueba, cuadradoPrueba, simetricaPrueba] vs as
+                                                    GrafoTND -> grafoTipoPorPruebas [numeroPrueba, triangularPrueba] vs as
+                                                    _        -> error "GrafoTipo invalído para esta función. Usa el constructor especial para eso."
+
+grafoDSNdeLista :: Aristas -> ValGrafo (Grafo Int)
+grafoDSNdeLista as = ValGrafo GrafoDSN $ grafoTipoPorPruebas [cuadradoPrueba] [1..length as] as
+
+{-Funciones para ValGrafos-}
+aristaEntre :: Eq a => Vertice a -> Vertice a -> ValGrafo (Grafo a) -> Maybe Int
+aristaEntre v1 v2 (ValGrafo gt g@(_,as)) =
     let v1Indice = fromMaybe (-1) $ indiceDe v1 g
         v2Indice = fromMaybe (-1) $ indiceDe v2 g
         in if v1Indice > (-1) && v2Indice > (-1)
-           then Just ((as !! v1Indice) !! v2Indice)
-           else Nothing
-aristaEntre v1 v2 (GrafoDSN g@(_, as)) =
-    let v1Indice = fromMaybe (-1) $ indiceDe v1 g
-        v2Indice = fromMaybe (-1) $ indiceDe v2 g
-        in if v1Indice > (-1) && v2Indice > (-1)
-           then Just ((as !! v1Indice) !! v2Indice)
-           else Nothing
-aristaEntre v1 v2 (GrafoND g@(_, as)) =
-    let v1Indice = fromMaybe (-1) $ indiceDe v1 g
-        v2Indice = fromMaybe (-1) $ indiceDe v2 g
-        in if v1Indice > (-1) && v2Indice > (-1)
-           then Just ((as !! (min v1Indice v2Indice)) !! (max v1Indice v2Indice))
-           else Nothing
-aristaEntre v1 v2 (GrafoTND g@(_, as)) =
-    let v1Indice = fromMaybe (-1) $ indiceDe v1 g
-        v2Indice = fromMaybe (-1) $ indiceDe v2 g
-        in if v1Indice > (-1) && v2Indice > (-1)
-           then Just ((as !! (min v1Indice v2Indice)) !! ((max v1Indice v2Indice) - (min v1Indice v2Indice)))
-           else Nothing
-
-{-Constructores para tipos de grafos-}
-
-grafoDdeLista :: Vertices a -> Aristas -> GrafoTipo (Grafo a)
-grafoDdeLista vs as = GrafoD $ grafoTipoPorPruebas [numeroPrueba, cuadradoPrueba] vs as
-
-grafoDSNdeLista :: Aristas -> GrafoTipo (Grafo Int)
-grafoDSNdeLista as =  GrafoDSN $ grafoTipoPorPruebas [cuadradoPrueba] [1..length as] as
-
-grafoNDdeLista :: Vertices a -> Aristas -> GrafoTipo (Grafo a)
-grafoNDdeLista vs as = GrafoND $ grafoTipoPorPruebas [numeroPrueba, cuadradoPrueba, simetricaPrueba] vs as -- cuadradoPrueba es más probable redudante considerando simetricaPrueba
-
-grafoTNDdeLista :: Vertices a -> Aristas -> GrafoTipo (Grafo a)
-grafoTNDdeLista vs as = GrafoTND $ grafoTipoPorPruebas [numeroPrueba, triangularPrueba] vs as
+          then Just $ case gt of GrafoND    -> (as !! (min v1Indice v2Indice)) !! (max v1Indice v2Indice)
+                                 GrafoTND   -> (as !! (min v1Indice v2Indice)) !! ((max v1Indice v2Indice) - (min v1Indice v2Indice))
+                                 otherwise  -> (as !! v1Indice) !! v2Indice
+          else Nothing
 
 
 {-PRUEBAS-}
